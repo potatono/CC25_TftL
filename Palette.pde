@@ -7,6 +7,18 @@ public class Palette {
         this.colors = new color[steps];
     }
 
+    public Palette(Palette[] sources) {
+      this.steps = sources[0].steps * sources.length;
+      this.colors = new color[steps];
+      
+      for (int i = 0; i < sources.length; i++) {
+        Palette source = sources[i];
+        for (int j = 0; j < source.steps; j++) {
+          this.colors[i * source.steps + j] = source.colors[j];
+        }
+      }
+    }
+        
     public void generateByHue(int baseHue) {
         colorMode(HSB, 360, 100, 100); // Ensure HSB mode is set
 
