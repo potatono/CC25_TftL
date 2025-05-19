@@ -10,9 +10,12 @@ public class Arduino {
     int reset_delay;
     int is_bright;
     int on_beat;
+    int beat_edge;
     int pal_ofs = 0;
     int routine = 0;
     int flash_beat_fuel;
+    int glitch_sections;
+    int glitch_decay;
 
     public Arduino(int[] palette) {
         this.strip = new Adafruit_NeoPixel(LED_COUNT);
@@ -46,9 +49,12 @@ public class Arduino {
     long reset_time;
     int reset_delay;
     int on_beat;
+    int beat_edge;
     int pal_ofs = 0;
     int routine = 0;
     int flash_beat_fuel;
+    int glitch_sections;
+    int glitch_decay;
 **/
 
 /** COPY **/
@@ -60,6 +66,42 @@ public class Arduino {
         is_bright = 0;
 
         reset();
+    }
+
+    void reset() {
+        reset_time = millis();
+        reset_delay = int(random(RESET_MIN_TIME, RESET_MAX_TIME));
+
+        reset_routine();
+
+        if (routine == 0)
+            reset_fire();
+        else if (routine == 1)
+            reset_flash();
+        else if (routine == 2)
+            reset_glitch();
+        
+        reset_leds();
+        reset_beat();
+        reset_palette();
+    }
+
+    void reset_palette() {
+        pal_ofs = int(random(PAL_COUNT)) * PAL_SIZE * 3;
+    }
+
+    void reset_beat() {
+        beat_duration = int(random(BEAT_DURATION_MIN, BEAT_DURATION_MAX)) * beat_multiplier;
+        beat_delay = int(random(BEAT_DELAY_MIN, BEAT_DELAY_MAX)) * beat_multiplier;
+        beat_trigger_time = millis();
+        on_beat = 0;
+        beat_edge = 1;
+    }
+
+    void reset_leds() {
+        for (int i=0; i<LED_COUNT; i++) {
+            strip.setPixelColor(i, 0, 0, 0);
+        }
     }
 
     void reset_fire() {
@@ -77,34 +119,18 @@ public class Arduino {
         flash_beat_fuel = int(random(PAL_SIZE/2*FP_SIZE, PAL_SIZE*FP_SIZE-1));
     }
 
-    void reset() {
-        reset_time = millis();
-        reset_delay = int(random(RESET_MIN_TIME, RESET_MAX_TIME));
-
-        reset_routine();
-
-        if (routine == 0)
-            reset_fire();
-        else if (routine == 1)
-            reset_flash();
-        
-        reset_beat();
-        reset_palette();
-    }
-
-    void reset_palette() {
-        pal_ofs = int(random(PAL_COUNT)) * PAL_SIZE * 3;
-    }
-
-    void reset_beat() {
-        beat_duration = int(random(BEAT_DURATION_MIN, BEAT_DURATION_MAX)) * beat_multiplier;
-        beat_delay = int(random(BEAT_DELAY_MIN, BEAT_DELAY_MAX)) * beat_multiplier;
-        beat_trigger_time = millis();
-        on_beat = 0;
+    void reset_glitch() {
+        beat_multiplier = 4;
+        glitch_sections = int(random(2, 4));
+        glitch_decay = int(random(DECAY_MIN, DECAY_MAX)/2);
+        // Reuse the fire array to store the glitch sections
+        for (int i=0; i<glitch_sections; i++) {
+            fire[i] = 0;
+        }
     }
 
     void reset_routine() {
-        routine = int(random(0, 2));
+        routine = int(random(0, 3));
     }
 
     void loop_fire() {
@@ -151,7 +177,33 @@ public class Arduino {
         for (int i=0; i<LED_COUNT; i++) {
             strip.setPixelColor(i, palette[idx], palette[idx+1], palette[idx+2]);
         }
+    }
 
+    void loop_glitch() {
+        // In this routine we're going to reuse the fire array to represent each
+        // section.  We'll only use the first 4 values of the array at most.
+
+        // When we're on a beat_edge...
+        if (beat_edge == 1) {
+            // Randomly pick a secction to glitch
+            int section = int(random(glitch_sections));
+
+            // Use the fire array to store the new glitched section
+            fire[section] = int(random((PAL_SIZE-PAL_SIZE/4)*FP_SIZE, PAL_SIZE*FP_SIZE-1));
+        }
+        
+        int glitch_section_size = LED_COUNT / glitch_sections;
+        // Decay all the sections in the fire array
+        for (int i=0; i<glitch_sections; i++) {
+            int decay = glitch_decay;
+            fire[i] = max(0, fire[i] - decay);
+
+            // Convert to palette and write to strip
+            for (int j=0; j<glitch_section_size; j++) {
+                int idx = fire[i] / FP_SIZE * 3 + pal_ofs;
+                strip.setPixelColor(i*glitch_section_size+j, palette[idx], palette[idx+1], palette[idx+2]);
+            }
+        }
     }
 
     void loop() {
@@ -161,9 +213,11 @@ public class Arduino {
         // When on_beat is zero we're in the long delay between beats
         // When it is one or three we're on a beat
         // When it is two we're in the short delay between thumps
+        beat_edge = 0;
         int delay_time = on_beat == 0 ? beat_delay : beat_duration;
         if (ms > beat_trigger_time + delay_time) {
             on_beat = (on_beat + 1) % 4;
+            beat_edge = 1;
             beat_trigger_time = ms;
         }
 
@@ -171,6 +225,8 @@ public class Arduino {
             loop_fire();
         else if (routine == 1) 
             loop_flash();
+        else if (routine == 2)
+            loop_glitch();
 
         strip.show();
 
