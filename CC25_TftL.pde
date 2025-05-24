@@ -7,7 +7,7 @@ public static int PAL_COUNT = 4;
 public static int LED_COUNT = 120;
 
 // How bright to make the strips (out of 255) initially
-public static int INIT_BRIGHTNESS=200; //50; 
+public static int INIT_BRIGHTNESS=50; //50; 
 
 // How bright to make thes strips after a delay (for debugging/testing)
 public static int PROD_BRIGHTNESS=200; //200;
@@ -31,8 +31,8 @@ public static int BEAT_DELAY_MIN = 500; //4000;
 public static int BEAT_DELAY_MAX = 1500; //6000;
 
 // How long to rerandomize the beat timings
-public static int RESET_MIN_TIME = 15000;
-public static int RESET_MAX_TIME = 60000;
+public static int RESET_MIN_TIME = 150000;
+public static int RESET_MAX_TIME = 450000;
 
 // Chance of additional fuel
 public static int FUEL_CHANCE=10;

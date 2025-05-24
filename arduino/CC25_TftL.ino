@@ -9,7 +9,7 @@
 #define LED_COUNT 120
 
 // How bright to make the strips (out of 255) initially
-#define INIT_BRIGHTNESS 200
+#define INIT_BRIGHTNESS 50
 
 // How bright to make thes strips after a delay (for debugging/testing)
 #define PROD_BRIGHTNESS 200
@@ -33,8 +33,8 @@
 #define BEAT_DELAY_MAX 1500
 
 // How long to rerandomize the beat timings
-#define RESET_MIN_TIME 15000
-#define RESET_MAX_TIME 60000
+#define RESET_MIN_TIME 150000
+#define RESET_MAX_TIME 450000
 
 // Chance of additional fuel
 #define FUEL_CHANCE 10
